@@ -1,0 +1,14 @@
+<lms>
+<module>
+<package>mypackage1</package>
+<name>mod1</name>
+</module>
+<module>
+<package>mypackage1:main2</package>
+<name>mod11</name>
+</module>
+<module>
+<package>mypackage2</package>
+<name>mod2</name>
+</module>
+</lms>

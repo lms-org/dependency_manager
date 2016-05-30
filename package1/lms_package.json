@@ -1,0 +1,7 @@
+{
+"name": "package1",
+"dependencies":["lib1","lib2"],
+"description":"Test package file",
+"includes":["include"],
+"targets":["package1"]
+}

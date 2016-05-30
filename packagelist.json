@@ -1,0 +1,15 @@
+{
+"imaging": {
+    "path": "https://github.com/lms-org/imaging",
+    "description": "Darstellung von Bildern"},
+
+"package1":{
+    "path": "/home/phibedy/Documents/programming/c++/lms/lms_tools/install_lms_dev/package1",
+    "description": "package1 desc"},
+"lib1":{
+    "path": "/home/phibedy/Documents/programming/c++/lms/lms_tools/install_lms_dev/lib1",
+    "description": "lib1 desc"},
+"lib2":{
+    "path": "/home/phibedy/Documents/programming/c++/lms/lms_tools/install_lms_dev/lib2",
+    "description": "lib2 desc"}
+}

@@ -1,0 +1,1 @@
+target_include_directories(package1 PUBLIC /home/phibedy/Documents/programming/c++/lms/lms_tools/install_lms_dev/dependencies/package1/include /home/phibedy/Documents/programming/c++/lms/lms_tools/install_lms_dev/dependencies/package1/include)
