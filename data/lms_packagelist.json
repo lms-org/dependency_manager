@@ -44,9 +44,46 @@
 "camera_importer":{
     "path": "https://github.com/lms-org/camera_importers",
     "description": "TODO"},
+"ogre_input":{
+    "path": "https://github.com/lms-org/ogre_input",
+    "description": "TODO"},
+"socket_data":{
+    "path": "https://github.com/lms-org/socket_data",
+    "description": "TODO"},
+"socket_connection":{
+    "path": "https://github.com/lms-org/socket_connection",
+    "description": "TODO"},
+"image_loader":{
+    "path": "https://github.com/lms-org/image_loader",
+    "description": "TODO"},
+"image_logger":{
+    "path": "https://github.com/lms-org/image_logger",
+    "description": "TODO"},
 "camera_calibration":{
     "path": "https://github.com/lms-org/camera_calibration",
     "description": "TODO"},
-
-
+"camera_calibration":{
+    "path": "https://github.com/lms-org/camera_calibration",
+    "description": "TODO"},
+"channel_serializer":{
+    "path": "https://github.com/lms-org/channel_serializer",
+    "description": "TODO"},
+"camera_calibration":{
+    "path": "https://github.com/lms-org/camera_calibration",
+    "description": "TODO"},
+"ogre_window_manager":{
+    "path": "https://github.com/lms-org/ogre_window_manager",
+    "description": "TODO"},
+"image_proxy":{
+    "path": "https://github.com/lms-org/image_proxy",
+    "description": "TODO"},
+"gamepad_lib":{
+    "path": "https://github.com/lms-org/gamepad_lib",
+    "description": "TODO"},
+"gamepad_controller":{
+    "path": "https://github.com/lms-org/gamepad_controller",
+    "description": "TODO"},
+"urg_laser_scanner":{
+    "path": "https://github.com/lms-org/urg_laser_scanner",
+    "description": "TODO"}
 }
