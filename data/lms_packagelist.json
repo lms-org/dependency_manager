@@ -1,0 +1,52 @@
+{
+"imaging": {
+    "path": "https://github.com/lms-org/imaging",
+    "description": "Darstellung von Bildern"},
+"imaging_detection":{
+    "path": "https://github.com/lms-org/imaging_detection",
+    "description": "TODO"},
+"image_converter":{
+    "path": "https://github.com/lms-org/image_converter",
+    "description": "TODO"},
+"warp_service":{
+    "path": "https://github.com/lms-org/warp_service",
+    "description": "TODO"},
+"LMS":{
+    "path": "https://github.com/lms-org/LMS",
+    "description": "TODO"},
+"sensor_utils":{
+    "path": "https://github.com/lms-org/sensor_utils",
+    "description": "TODO"},
+"math_lib":{
+    "path": "https://github.com/lms-org/math_lib",
+    "description": "TODO"},
+"sfml_sound_player":{
+    "path": "https://github.com/lms-org/sfml_sound_player",
+    "description": "TODO"},
+"image_hint_worker":{
+    "path": "https://github.com/lms-org/image_hint_worker",
+    "description": "TODO"},
+"ueye_importer":{
+    "path": "https://github.com/lms-org/ueye_importer",
+    "description": "TODO"},
+"pause_runtime":{
+    "path": "https://github.com/lms-org/pause_runtime",
+    "description": "TODO"},
+"sdl_image_renderer":{
+    "path": "https://github.com/lms-org/sdl_image_renderer",
+    "description": "TODO"},
+"sdl_service":{
+    "path": "https://github.com/lms-org/sdl_service",
+    "description": "TODO"},
+"image_renderer":{
+    "path": "https://github.com/lms-org/image_renderer",
+    "description": "TODO"},
+"camera_importer":{
+    "path": "https://github.com/lms-org/camera_importers",
+    "description": "TODO"},
+"camera_calibration":{
+    "path": "https://github.com/lms-org/camera_calibration",
+    "description": "TODO"},
+
+
+}
