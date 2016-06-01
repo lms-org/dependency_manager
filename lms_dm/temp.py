@@ -3,18 +3,18 @@
 #TODO version fehlt noch, wir splitten am ersten:
 #TODO es fehlt noch die überprüfung ob manche packages mehrfach mit anderen URLs definiert wurden
 #neededPackages = parseFrameworkXml('framework_conf.xml')
-+packagesData = parsePackageList('packagelist.json')
+#+packagesData = parsePackageList('packagelist.json')
 
-+packages = getNeededPackageUrls(neededPackages,packagesData);
-+print(packages)
+#+packages = getNeededPackageUrls(neededPackages,packagesData);
+#+print(packages)
 #Nun müssen wir prüfen was es für eine url ist
-for package in packages:
-    url = packages[package]
-    if isGitUrl(url):
-        print('git url: '+url)
+#for package in packages:
+#    url = packages[package]
+#    if isGitUrl(url):
+#        print('git url: '+url)
         #TODO wir downloaden das repo
-    else :
-        print("No valid url given for " +package + " url: " + url)
+#    else :
+ #       print("No valid url given for " +package + " url: " + url)
 
 #Nun haben wir alle benötigten packages
 #Fragen zu klären: 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #Register a dependency
 import sys, os
-from lms import install_utils
+from lms_dm import install_utils
 
 dependencyDir = ''
 dependencyName = ''

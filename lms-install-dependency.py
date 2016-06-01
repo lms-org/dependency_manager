@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #Installs a dependency with all its dependencies
 import sys, os
-from lms import install_utils
+from lms_dm import install_utils
 
 def checkIfDirIsPackage(path):
     packageFile = path+'/lms_package.json'
@@ -43,76 +43,83 @@ def getTargetIncludeString(target, includelist):
     return 'target_include_directories({0} PUBLIC {1})'.format(target,' '.join(includelist))
 
 
-def generateCMakeForPackage(packageName):
-    #generate cmake file
-    print("generating cmake file for: " +packageName)
-    #get the targets of the package
+def getStringForPackageIncludes(packageName):
+    ##each package has one or more binary/target, we have to catch them all!
     targets = install_utils.getPackageTargets(packageName)
     print("found targets: {0}".format(targets))
     dependencies = install_utils.getPackageDependencies(packageName)
     #get includes for the dependencies
     includeList = list()
     for dependency in dependencies:
-        for tmp in install_utils.getPackageIncludes(packageName):
+        for tmp in install_utils.getPackageIncludes(dependency):
             includeList.append(tmp)
-    #print('includeList: {0}'.format(includeList))
-    #print(getTargetIncludeString(packageName,includeList))
-
-    cmakeFile = 'lms_cmake/'+packageName+'.cmake'
-    os.makedirs('lms_cmake',exist_ok=True)        
-    with open(cmakeFile,'w') as file:
-        file.write(getTargetIncludeString(packageName,includeList))
-    print("DONE generating cmake")
+    if len(includeList) == 0:
+        return ""
+    res = ""
+    for target in targets:
+        res += getTargetIncludeString(target,includeList) + '\n'
+    return res
 
 
   
+
+#RUNNING CODE
 
 if len(sys.argv) != 2:
     print("Usage: lms-flags <dependency>")
     sys.exit(1)
 
-
-#RUNNING CODE
 package = sys.argv[1]  
 
 #installing it
 installPackageWithDependencies(package)
 
 #generate CMake for one package
-generateCMakeForPackage(package)
+#generateCMakeForPackageIncludes(package)
 
 #generate hierarchy CMake
 #get all packages
 packageHierarchyList = dict();
 for dir in get_immediate_subdirectories('dependencies'):
-    if not checkIfDirIsPackage(dir):
+    if not checkIfDirIsPackage('dependencies/'+dir):
         print("invalid dir given: "+dir)
         continue;
     packageHierarchyList[dir]=install_utils.getPackageDependencies(dir)
 
-cmakeFile = 'lms_cmake/CMakeLists.txt'
-os.makedirs('lms_cmake',exist_ok=True)        
+
+cmakeFile = 'CMakeLists.txt'
+#os.makedirs('lms_cmake',exist_ok=True)
 with open(cmakeFile,'w') as file:
-    lastSize = len(packageHierarchyList)
-    while len(packageHierarchyList) > 0:
-        for packageDependencies in list(packageHierarchyList):
-            if len(packageHierarchyList[packageDependencies]) == 0:
+    file.write('cmake_minimum_required(VERSION 2.8) \n')
+    file.write('project(TODO) \n') # TODO get the current dirname
+    
+    #TODO check if file exists
+    file.write('include(custemCMake.txt) \n')
+    packageHierarchyListCopy = packageHierarchyList.copy()
+
+    file.write('\n \n#package compile hierachy \n')
+    lastSize = len(packageHierarchyListCopy)
+    while len(packageHierarchyListCopy) > 0:
+        for packageDependencies in list(packageHierarchyListCopy):
+            if len(packageHierarchyListCopy[packageDependencies]) == 0:
                 file.write(getCMakeCallCompileDependencyMessage(packageDependencies)+'\n')
                 #remove it from all other lists
-                packageHierarchyList.pop(packageDependencies)
-                for tmp in packageHierarchyList:
-                    if packageDependencies in packageHierarchyList[tmp]:
-                        packageHierarchyList[tmp].remove(packageDependencies)
-        if lastSize == len(packageHierarchyList):
+                packageHierarchyListCopy.pop(packageDependencies)
+                for tmp in packageHierarchyListCopy:
+                    if packageDependencies in packageHierarchyListCopy[tmp]:
+                        packageHierarchyListCopy[tmp].remove(packageDependencies)
+        if lastSize == len(packageHierarchyListCopy):
             #TODO error handling if there is a closed loop :D
-            print("Your dependencies have a closed loop! {0}".format(packageHierarchyList))
+            print("Your dependencies have a closed loop! {0}".format(packageHierarchyListCopy))
             sys.exit(1)
-    #glob all the files
-    file.write('''\n
-file(GLOB toInclude *.cmake)
-foreach(myPath ${toInclude})
-    include(${myPath})
-endforeach(myPath)''')
+
+    file.write('\n\n#target include paths \n')
+    for package in list(packageHierarchyList):
+        s = getStringForPackageIncludes(package)
+        if len(s) != 0:
+            file.write(s)
+
+print("Done")
 
 
 

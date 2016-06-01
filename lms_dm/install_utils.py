@@ -4,6 +4,7 @@ import xml.etree.ElementTree
 import json
 import sys, os
 import subprocess
+#from subprocess import call
 
 def parseFrameworkXml(configFilePath):
     root = xml.etree.ElementTree.parse(configFilePath).getroot()
@@ -19,11 +20,11 @@ def parseJson(packageFilePath):
 
 def getDefaultPackageList():
     homeDir = os.path.expanduser("~")
-    return  homeDir+'/lms/packagelist.json'
+    return  homeDir+'/.lms/packagelist.json'
 
 def getPackageLists():
     result = set()
-    result.add('packagelist.json') # TODO hier später alle möglichen ausführen
+#   TODO hier später alle möglichen ausführen
     result.add(getDefaultPackageList())
     return result
 
@@ -66,16 +67,17 @@ def installPackage(packageName,packageUrl):
         if os.path.isdir(dir):
             #pull the dir
             p = subprocess.Popen(['git', 'pull'], cwd=dir)
-            output, err = p.communicate();
-            if output != 0:
+            output, err = p.communicate()
+            if err is not None:
+                print(output)
                 print("pull failed")
                 sys.exit(1)
             #TODO error handling
         else : 
-            ret = call(["git","clone",packageUrl, dir])
-        if ret != 0:
-            print("clone failed")
-            sys.exit(1)
+            ret = subprocess.call(["git","clone",packageUrl, dir])
+            if ret != 0:
+                print("clone failed")
+                sys.exit(1)
         print("cloned package")
     elif isLocalFolder(packageUrl) :
         print('hadle local package: ' +packageName)
@@ -126,7 +128,7 @@ def registerPackage(packageName,packageUrl, packageListUrl):
     #TODO errorhandling
     #json.add
     
-
+#returns a list with all binaries that have to be linked
 def getPackageTargets(packageName):
     dir = 'dependencies/'+packageName
     packageFilePath = dir+'/lms_package.json'
@@ -134,7 +136,7 @@ def getPackageTargets(packageName):
     if 'targets' in json:
         return json['targets']
     targets = list()
-    targets.add(packageName)
+    targets.append(packageName)
     return targets
 
 def getPackageAbsPath(relativePath, packageName):

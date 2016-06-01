@@ -85,5 +85,32 @@
     "description": "TODO"},
 "urg_laser_scanner":{
     "path": "https://github.com/lms-org/urg_laser_scanner",
+    "description": "TODO"},
+"trajectory_point_controller": {
+    "path": "https://github.com/tum-phoenix/trajectory_point_controller",
+    "description": "TODO"},
+"trajectory_creator": {
+    "path": "https://github.com/tum-phoenix/trajectory_creator",
+    "description": "TODO"},
+"street_environment": {
+    "path": "https://github.com/tum-phoenix/street_environment",
+    "description": "TODO"},
+"rgb_lights_controller": {
+    "path": "https://github.com/tum-phoenix/rgb_lights_controller",
+    "description": "TODO"},
+"parking": {
+    "path": "https://github.com/tum-phoenix/parking",
+    "description": "TODO"},
+"mavlink_helper": {
+    "path": "https://github.com/tum-phoenix/mavlink_helper",
+    "description": "TODO"},
+"environment_predictor": {
+    "path": "https://github.com/tum-phoenix/environment_predictor",
+    "description": "TODO"},
+"ego_estimator": {
+    "path": "https://github.com/tum-phoenix/ego_estimator",
+    "description": "TODO"},
+"mavlink_usb_importer": {
+    "path": "https://github.com/tum-phoenix/mavlink_usb_importer",
     "description": "TODO"}
 }
