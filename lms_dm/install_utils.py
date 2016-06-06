@@ -59,7 +59,7 @@ def isLocalFolder(url):
 def isZipFile(url):
     return False #TODO
 
-def installPackage(packageName,packageUrl):
+def installPackage(packageName,packageUrl, packageNameParts=()):
     dir = 'dependencies/'+packageName;
     dirAbs = os.path.abspath(dir)
     if isGitUrl(packageUrl):
@@ -72,13 +72,24 @@ def installPackage(packageName,packageUrl):
                 print(output)
                 print("pull failed")
                 sys.exit(1)
+            print("pulled package")
             #TODO error handling
         else : 
             ret = subprocess.call(["git","clone",packageUrl, dir])
             if ret != 0:
                 print("clone failed")
                 sys.exit(1)
-        print("cloned package")
+            print("cloned package")
+        print("LEN: {0}".format(len(packageNameParts)))
+        if len(packageNameParts) > 1:
+            print("checking out: "+packageNameParts[1])
+            p = subprocess.Popen(['git', 'checkout',packageNameParts[1]], cwd=dir)
+            output, err = p.communicate()
+            if err is not None:
+                print(output)
+                print("can't checkout: "+packageNameParts[1])
+                sys.exit(1)
+
     elif isLocalFolder(packageUrl) :
         print('hadle local package: ' +packageName)
         if not os.path.isabs(packageUrl):
@@ -102,18 +113,25 @@ def getPackageNameFromPath(path):
     return packageData['name']
         
 
-def getPackageDependencies(packageName):
+def getPackageDependencies(packageName, withoutExtensions=False):
     dir = 'dependencies/'+packageName
     packageFile = dir+'/lms_package.json'
     if not os.path.isdir(dir):
         print('package does not exist: ' + packageName)
         return;
     if not os.path.isfile(packageFile):
-        print('lms_package.json does not exist in: ' + package)
+        print('lms_package.json does not exist in: ' + packageName)
         return;
     packageData = parseJson(packageFile) #TODO error handling
     if 'dependencies' in packageData:
-        return packageData['dependencies']
+        res = packageData['dependencies']
+        if withoutExtensions:
+            for tmp in res:
+                packageSplit= tmp.split(':')
+                if len(packageSplit) > 1:
+                    res.remove(tmp)
+                    res.append(packageSplit[0])
+        return res
     return list()
 
 

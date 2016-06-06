@@ -16,7 +16,12 @@ def get_immediate_subdirectories(a_dir):
 def getCMakeCallCompileDependencyMessage(packageName):
     return 'add_subdirectory({0})'.format(install_utils.getPackageAbsPath('',packageName))
 
-def installPackageWithDependencies(package):
+def installPackageWithDependencies(packageFull):
+    
+    packageNameParts = packageFull.split(":")
+    package = packageNameParts[0]
+    print("installing package {0} with parameters {1}".format(package,packageNameParts))
+
     packageUrl = install_utils.getPackageUrlFromName(package)
 
     #check if a url was set
@@ -27,16 +32,16 @@ def installPackageWithDependencies(package):
     print(packageUrl)
 
     #install package
-    install_utils.installPackage(package,packageUrl)
+    install_utils.installPackage(package,packageUrl,packageNameParts)
 
     #get dependencies
     dependencies = install_utils.getPackageDependencies(package)
-    print(dependencies)
-
-    for dependency in dependencies:
-        print("installing dependency: " +dependency) 
-        installPackageWithDependencies(dependency)
-        #TODO check if dependency was already added, if not create cmake file for it
+    
+    if dependencies is not None:
+        for dependency in dependencies:
+            print("installing dependency: " +dependency) 
+            installPackageWithDependencies(dependency)
+            #TODO check if dependency was already added, if not create cmake file for it
 
 
 def getTargetIncludeString(target, includelist):
@@ -47,7 +52,7 @@ def getStringForPackageIncludes(packageName):
     ##each package has one or more binary/target, we have to catch them all!
     targets = install_utils.getPackageTargets(packageName)
     print("found targets: {0}".format(targets))
-    dependencies = install_utils.getPackageDependencies(packageName)
+    dependencies = install_utils.getPackageDependencies(packageName,True)
     #get includes for the dependencies
     includeList = list()
     for dependency in dependencies:
@@ -69,24 +74,25 @@ if len(sys.argv) != 2:
     print("Usage: lms-flags <dependency>")
     sys.exit(1)
 
-package = sys.argv[1]  
+package = sys.argv[1]
 
 #installing it
 installPackageWithDependencies(package)
+print("installing Done")
 
-#generate CMake for one package
-#generateCMakeForPackageIncludes(package)
-
-#generate hierarchy CMake
-#get all packages
+#get all package-dependencies
 packageHierarchyList = dict();
 for dir in get_immediate_subdirectories('dependencies'):
     if not checkIfDirIsPackage('dependencies/'+dir):
         print("invalid dir given: "+dir)
         continue;
-    packageHierarchyList[dir]=install_utils.getPackageDependencies(dir)
+    #ignore package parameters as we can't compile two times the same package with different versions (targetName fails)  
+    packageHierarchyList[dir]=install_utils.getPackageDependencies(dir, True)      
+
+print(packageHierarchyList)
 
 
+#generate hierarchy CMake
 cmakeFile = 'CMakeLists.txt'
 #os.makedirs('lms_cmake',exist_ok=True)
 with open(cmakeFile,'w') as file:
