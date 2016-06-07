@@ -59,14 +59,17 @@ def isLocalFolder(url):
 def isZipFile(url):
     return False #TODO
 
-def installPackage(packageName,packageUrl, packageNameParts=()):
-    dir = 'dependencies/'+packageName;
-    dirAbs = os.path.abspath(dir)
+def installPackage(packageName,packageUrl, packageNameParts, dependencyDir):
+    #create path
+    os.makedirs(dependencyDir, exist_ok=True)
+    myDir = os.path.join(dependencyDir,packageName)
+    dirAbs = os.path.abspath(myDir)
     if isGitUrl(packageUrl):
         #check if folder already exists
-        if os.path.isdir(dir):
+        print("mydir: " + myDir)
+        if os.path.isdir(myDir):
             #pull the dir
-            p = subprocess.Popen(['git', 'pull'], cwd=dir)
+            p = subprocess.Popen(['git', 'pull'], cwd=myDir)
             output, err = p.communicate()
             if err is not None:
                 print(output)
@@ -75,15 +78,18 @@ def installPackage(packageName,packageUrl, packageNameParts=()):
             print("pulled package")
             #TODO error handling
         else : 
-            ret = subprocess.call(["git","clone",packageUrl, dir])
-            if ret != 0:
-                print("clone failed")
+            #ret = subprocess.call(["git","clone",packageUrl, dir])
+            p = subprocess.Popen(['git', 'clone', packageUrl], cwd=dependencyDir)
+            output, err = p.communicate()
+            if err is not None:
+                print(output)
+                print("clone failed: "+ myDir)
                 sys.exit(1)
             print("cloned package")
         print("LEN: {0}".format(len(packageNameParts)))
         if len(packageNameParts) > 1:
             print("checking out: "+packageNameParts[1])
-            p = subprocess.Popen(['git', 'checkout',packageNameParts[1]], cwd=dir)
+            p = subprocess.Popen(['git', 'checkout',packageNameParts[1]], cwd=myDir)
             output, err = p.communicate()
             if err is not None:
                 print(output)
@@ -113,14 +119,13 @@ def getPackageNameFromPath(path):
     return packageData['name']
         
 
-def getPackageDependencies(packageName, withoutExtensions=False):
-    dir = 'dependencies/'+packageName
-    packageFile = dir+'/lms_package.json'
-    if not os.path.isdir(dir):
-        print('package does not exist: ' + packageName)
+def getPackageDependencies(packageDir, withoutExtensions=False):
+    packageFile = packageDir+'/lms_package.json'
+    if not os.path.isdir(packageDir):
+        print('package does not exist: ' + packageDir)
         return;
     if not os.path.isfile(packageFile):
-        print('lms_package.json does not exist in: ' + packageName)
+        print('lms_package.json does not exist in: ' + packageDir)
         return;
     packageData = parseJson(packageFile) #TODO error handling
     if 'dependencies' in packageData:
@@ -147,9 +152,8 @@ def registerPackage(packageName,packageUrl, packageListUrl):
     #json.add
     
 #returns a list with all binaries that have to be linked
-def getPackageTargets(packageName):
-    dir = 'dependencies/'+packageName
-    packageFilePath = dir+'/lms_package.json'
+def getPackageTargets(packageName,dependencyDir):
+    packageFilePath = os.path.join(dependencyDir,packageName,'lms_package.json')
     json = parseJson(packageFilePath)
     if 'targets' in json:
         return json['targets']
@@ -157,13 +161,9 @@ def getPackageTargets(packageName):
     targets.append(packageName)
     return targets
 
-def getPackageAbsPath(relativePath, packageName):
-    dir = 'dependencies/'+packageName+'/'+relativePath;
-    return os.path.abspath(dir)
 
-def getPackageIncludes(packageName, absPath=True):
-    dir = 'dependencies/'+packageName
-    packageFilePath = dir+'/lms_package.json'
+def getPackageIncludes(packageDir, absPath=True):
+    packageFilePath = packageDir+'/lms_package.json'
     json = parseJson(packageFilePath)
     if 'includes' in json:
         includes = json['includes']
@@ -174,7 +174,7 @@ def getPackageIncludes(packageName, absPath=True):
     result = list()
     for include in includes:
         if absPath:
-            result.append(getPackageAbsPath(include,packageName))
+            result.append(os.path.abspath(packageDir+'/'+include))
         else:
             result.append(include)
     return result
