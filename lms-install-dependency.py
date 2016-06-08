@@ -3,6 +3,7 @@
 import sys, os
 import argparse
 import subprocess
+import multiprocessing
 from lms_dm import install_utils
 
 def checkIfDirIsPackage(path):
@@ -165,12 +166,13 @@ if resultArgs.make:
     output, err = p.communicate()
     if err is not None:
         print(output)
-        print("cmake failed")
+        print("cmake failed")   
         sys.exit(1)
+
     if resultArgs.installGlobally:
-        p = subprocess.Popen(['make install'], cwd=buildDir)      
+        p = subprocess.Popen(['make install -j{0}'.format(multiprocessing.cpu_count())], cwd=buildDir)      
     else:
-        p = subprocess.Popen(['make'], cwd=buildDir)
+        p = subprocess.Popen(['make -j{0}'.format(multiprocessing.cpu_count())], cwd=buildDir)
     output, err = p.communicate()
     if err is not None:
         print(output)
