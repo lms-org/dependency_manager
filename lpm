@@ -13,16 +13,28 @@ def checkIfDirIsPackage(path):
         return False;
     return True;
 
+
+def getPurePackageName(packageFull):
+    return packageFull.split(":")[0]
+
 def getPackageManagerDir():
     return os.path.expanduser('~/.lms/lms_pm/')
     
-
+def getPackageManagerGlobalDependencyDir():
+    return os.path.join(getPackageManagerDir(),"dependencies")
+    
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir)
             if os.path.isdir(os.path.join(a_dir, name))]
 
 def getCMakeCallCompileDependencyMessage(packageDir):
     return 'add_subdirectory({0})'.format(os.path.abspath(packageDir))
+
+def isPackageInstalledGlobally(package):
+    packageName = getPurePackageName(package)
+    if os.path.isdir(os.path.join(getPackageManagerGlobalDependencyDir(),packageName)):
+        return True
+    return False
 
 def collectPackageWithDependencies(packageFull, dependencyDir):
     """Installs (prepares) the package (downloads it or creates symlink), same for each dependency
@@ -49,9 +61,13 @@ def collectPackageWithDependencies(packageFull, dependencyDir):
     print("DEPENDENCIES: {0}".format(dependencies))
     if dependencies is not None:
         for dependency in dependencies:
-            print("installing dependency: {0}".format(dependency)) 
-            collectPackageWithDependencies(dependency,dependencyDir)
-            #TODO check if dependency was already added, if not create cmake file for it
+            #check if dependency is installed globally
+            if isPackageInstalledGlobally(dependency) and dependencyDir != getPackageManagerGlobalDependencyDir():
+                print("package already installed globally: " + dependency)
+            else:
+                print("installing dependency: {0}".format(dependency)) 
+                collectPackageWithDependencies(dependency,dependencyDir)
+                #TODO check if dependency was already added, if not create cmake file for it
 
 
 def getTargetIncludeString(target, includelist):
@@ -59,7 +75,7 @@ def getTargetIncludeString(target, includelist):
 
 
 def getStringForPackageIncludes(packageName, dependencyDir):
-    ##each package has one or more binary/target, we have to catch them all!
+    #each package has one or more binary/target, we have to catch them all!
     targets = install_utils.getPackageTargets(packageName,dependencyDir)
     print("found targets: {0}".format(targets))
     dependencies = install_utils.getPackageDependencies(os.path.join(dependencyDir,packageName),True)
@@ -76,9 +92,9 @@ def getStringForPackageIncludes(packageName, dependencyDir):
     return res
 
 def downloadAndCreateCMake(package, installDir=''):
-    """install package in <installDir>dependencies (has to end with /)
+    """install package in <installDir>dependencies
     """
-    dependencyDir = installDir+'dependencies'
+    dependencyDir = os.path.join(installDir,'dependencies')
     collectPackageWithDependencies(package,dependencyDir)
     print("installing Done")
 
@@ -95,7 +111,8 @@ def downloadAndCreateCMake(package, installDir=''):
 
 
     #generate hierarchy CMake
-    cmakeFile = installDir+'CMakeLists.txt'
+    cmakeFile = os.path.join(installDir,'CMakeLists.txt')
+    print("CMAKE FILE: "+cmakeFile)
     #os.makedirs('lms_cmake',exist_ok=True)
     with open(cmakeFile,'w') as file:
         file.write('cmake_minimum_required(VERSION 2.8) \n')
@@ -108,6 +125,7 @@ def downloadAndCreateCMake(package, installDir=''):
         lastSize = len(packageHierarchyListCopy)
         while len(packageHierarchyListCopy) > 0:
             for packageDependencies in list(packageHierarchyListCopy):
+                print("TODO remove globally installed packages:" +packageDependencies)
                 if len(packageHierarchyListCopy[packageDependencies]) == 0:
                     file.write(getCMakeCallCompileDependencyMessage(dependencyDir+'/'+packageDependencies)+'\n')
                     #remove it from all other lists
@@ -137,7 +155,7 @@ def downloadAndCreateCMake(package, installDir=''):
 def prepareGlobally(package):
     #install package globally
     downloadAndCreateCMake(package,getPackageManagerDir())
-    return path
+    return getPackageManagerDir()
 
 def prepareLocally(package):
     downloadAndCreateCMake(package)
@@ -266,9 +284,12 @@ if "make" in resultArgs:
             sys.exit(1)
 
         if resultArgs.installGlobally:
-            p = subprocess.Popen(['make install -j{0}'.format(multiprocessing.cpu_count())], cwd=buildDir)      
+            print("MAKE dir: "+buildDir)
+            p = subprocess.Popen(['make','-j{0}'.format(multiprocessing.cpu_count())], cwd=buildDir)      
         else:
-            p = subprocess.Popen(['make -j{0}'.format(multiprocessing.cpu_count())], cwd=buildDir)
+            print("MAKE dir: "+buildDir)
+            print('make -j{0}'.format(multiprocessing.cpu_count()))
+            p = subprocess.Popen(['make','-j{0}'.format(multiprocessing.cpu_count())], cwd="build")
         output, err = p.communicate()
         if err is not None:
             print(output)
