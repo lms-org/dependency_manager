@@ -220,8 +220,15 @@ def checkEnviromentVariables():
     #TODO os check http://stackoverflow.com/questions/1854/python-what-os-am-i-running-on
     #UNIX
     profileFile = os.path.expanduser('~/.profile')
+    lmsbash = os.path.join(getPackageManagerDir(),'.bashrc')
     if os.path.isfile(profileFile):
-        lmsbash = os.path.join(getPackageManagerDir(),'bashrc')
+        #check if file exists
+        if not os.path.isfile(lmsbash):
+            with open(lmsbash,'w') as file:
+                file.write("""export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:"""+os.path.join(getPackageManagerDir(),'lib')+""""
+export PATH="$PATH:"""+os.path.join(getPackageManagerDir(),'bin')+""""
+export CPATH="$CPATH:"""+os.path.join(getPackageManagerDir(),'include')+"\"")
+        
         alreadyAdded = False
         with open(profileFile,'r') as file:
             fileRead = file.read()
@@ -236,11 +243,11 @@ def checkEnviromentVariables():
                 #TODO ask the user
                 print('you can add it to ~/.profile')
                 file.write('\n #automatically added by the lms package manager\n')
-                file.write('. "$HOME/.lms/package_manager/.bashrc"')
-                print("call <exec bash> to reload changes")
+                file.write('. "'+lmsbash+"\"")
+                print("call <exec bash> to reload changes (might not work, just reboot)")
                 
     else:
-        print('please include bash file yourself (add . "$HOME/.lms/package_manager/.bashrc" to your bashrc or HOME/.profile)')
+        print('please include bash file yourself (add . "'+lmsbash+'" to your bashrc or HOME/.profile)')
 
     
     #WIN TODO
