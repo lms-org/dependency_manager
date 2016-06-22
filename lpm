@@ -82,6 +82,8 @@ def getStringForPackageIncludes(packageName, dependencyDir):
     #get includes for the dependencies
     includeList = list()
     for dependency in dependencies:
+        if isPackageInstalledGlobally(dependency):
+            continue
         for tmp in install_utils.getPackageIncludes(os.path.join(dependencyDir,dependency)):
             includeList.append(tmp)
     if len(includeList) == 0:
@@ -105,7 +107,12 @@ def downloadAndCreateCMake(package, installDir=''):
             print("invalid dir given: "+subdir)
             continue;
         #ignore package parameters as we can't compile two times the same package with different versions (targetName fails)  
-        packageHierarchyList[subdir]=install_utils.getPackageDependencies(dependencyDir+'/'+subdir, True)      
+        result=install_utils.getPackageDependencies(dependencyDir+'/'+subdir, True)  
+        #remove globally installed packages
+        for tmp in result:
+            if isPackageInstalledGlobally(tmp):
+                result.remove(tmp)
+        packageHierarchyList[subdir] = result
 
     print(packageHierarchyList)
 
@@ -125,9 +132,11 @@ def downloadAndCreateCMake(package, installDir=''):
         lastSize = len(packageHierarchyListCopy)
         while len(packageHierarchyListCopy) > 0:
             for packageDependencies in list(packageHierarchyListCopy):
-                print("TODO remove globally installed packages:" +packageDependencies)
-                if len(packageHierarchyListCopy[packageDependencies]) == 0:
-                    file.write(getCMakeCallCompileDependencyMessage(dependencyDir+'/'+packageDependencies)+'\n')
+                installedGlobally = isPackageInstalledGlobally(packageDependencies)
+                print(packageDependencies+" installedGlobally: {0}".format(installedGlobally))
+                if len(packageHierarchyListCopy[packageDependencies]) == 0 or installedGlobally:
+                    if not installedGlobally:
+                        file.write(getCMakeCallCompileDependencyMessage(dependencyDir+'/'+packageDependencies)+'\n')
                     #remove it from all other lists
                     packageHierarchyListCopy.pop(packageDependencies)
                     for tmp in packageHierarchyListCopy:
@@ -137,6 +146,7 @@ def downloadAndCreateCMake(package, installDir=''):
                 #TODO error handling if there is a closed loop :D
                 print("Your dependencies have a closed loop! {0}".format(packageHierarchyListCopy))
                 sys.exit(1)
+            lastSize = len(packageHierarchyListCopy)
 
         file.write('\n\n#target include paths \n')
         for package in list(packageHierarchyList):
