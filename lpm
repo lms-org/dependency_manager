@@ -74,7 +74,7 @@ def getTargetIncludeString(target, includelist):
     return 'target_include_directories({0} PUBLIC {1})'.format(target,' '.join(includelist))
 
 
-def getStringForPackageIncludes(packageName, dependencyDir):
+def getStringForPackageIncludes(packageName, dependencyDir, globalHack = False):
     #each package has one or more binary/target, we have to catch them all!
     targets = install_utils.getPackageTargets(packageName,dependencyDir)
     print("found targets: {0}".format(targets))
@@ -82,7 +82,7 @@ def getStringForPackageIncludes(packageName, dependencyDir):
     #get includes for the dependencies
     includeList = list()
     for dependency in dependencies:
-        if isPackageInstalledGlobally(dependency):
+        if isPackageInstalledGlobally(dependency) and not globalHack:
             continue
         for tmp in install_utils.getPackageIncludes(os.path.join(dependencyDir,dependency)):
             includeList.append(tmp)
@@ -96,6 +96,7 @@ def getStringForPackageIncludes(packageName, dependencyDir):
 def downloadAndCreateCMake(package, installDir=''):
     """install package in <installDir>dependencies
     """
+    isGlobal = installDir == getPackageManagerDir()
     dependencyDir = os.path.join(installDir,'dependencies')
     collectPackageWithDependencies(package,dependencyDir)
     print("installing Done")
@@ -120,7 +121,7 @@ def downloadAndCreateCMake(package, installDir=''):
     #generate hierarchy CMake
     cmakeFile = os.path.join(installDir,'CMakeLists.txt')
     print("CMAKE FILE: "+cmakeFile)
-    #os.makedirs('lms_cmake',exist_ok=True)
+    #os.makedirs('lms_cmake',exist_ok=True) 
     with open(cmakeFile,'w') as file:
         file.write('cmake_minimum_required(VERSION 2.8) \n')
         file.write('project(TODO) \n') # TODO get the current dirname
@@ -133,6 +134,8 @@ def downloadAndCreateCMake(package, installDir=''):
         while len(packageHierarchyListCopy) > 0:
             for packageDependencies in list(packageHierarchyListCopy):
                 installedGlobally = isPackageInstalledGlobally(packageDependencies)
+                if isGlobal:
+                    installedGlobally = False #TODO Hack to enable installation of global packages....
                 print(packageDependencies+" installedGlobally: {0}".format(installedGlobally))
                 if len(packageHierarchyListCopy[packageDependencies]) == 0 or installedGlobally:
                     if not installedGlobally:
@@ -150,7 +153,7 @@ def downloadAndCreateCMake(package, installDir=''):
 
         file.write('\n\n#target include paths \n')
         for package in list(packageHierarchyList):
-            s = getStringForPackageIncludes(package,dependencyDir) #TODO packageName
+            s = getStringForPackageIncludes(package,dependencyDir,globalHack=isGlobal) #TODO packageName
             if len(s) != 0:
                 file.write(s)
     #generatre custom CMake file
