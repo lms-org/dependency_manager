@@ -28,6 +28,15 @@ def getPackageLists():
     result.add(getDefaultPackageList())
     return result
 
+def getPackageList():
+    data = dict()
+    for packageListPath in getPackageLists():
+        if not os.path.isfile(packageListPath):
+            print('packageFile does not exist: '+packageListPath)
+            continue
+        data[packageListPath] = parseJson(packageListPath)
+    return data
+
 def getPackageUrlFromName(packageName):
     for packageListPath in getPackageLists():
         if not os.path.isfile(packageListPath):

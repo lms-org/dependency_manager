@@ -10,5 +10,5 @@ setup(name='LMS-Dependency-Manager',
     url='https://github.com/lms-org/dependency_manager',
     packages=['lms_dm'],
     package_data={'lms_dm': ['data/lms_packagelist.json','data/tum_phoenix_packagelist.json']},
-    scripts=['lms-install-dependency.py', 'lms-register-dependency.py']
+    scripts=['lpm', 'lms-register-dependency.py']
 )

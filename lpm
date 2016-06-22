@@ -218,10 +218,19 @@ def checkEnviromentVariables():
     #WIN TODO
     print("TODO")
 
+def printPackageList():
+    data = install_utils.getPackageList()
+    #TODO alphabetisch sortieren
+    for listFile in data:
+        print("file: "+listFile)
+        for package in data[listFile]:
+            print(package + "   " + data[listFile][package]['description'])
+
 
 #RUNNING CODE
 #configure argument parser
 main_parser = argparse.ArgumentParser(description='Process package command.', add_help=True)
+main_parser.add_argument('-l','--list', dest='listPackages', help='lists all available packages', action='store_true')
 main_parser.add_argument('-e','--environment', dest='environment', help='checks environment variables', action='store_true')
 main_parser.add_argument('-cs','--createlmsscript', dest='createlmsscript', help='creates start script for lms', action='store_true')
 subparser = main_parser.add_subparsers(help='sub-command help')
@@ -233,7 +242,7 @@ parser.add_argument('-m','--make', dest='make', help='run cmake and make', actio
 
 #parse args
 resultArgs = main_parser.parse_args()
-print(resultArgs)
+#print(resultArgs)
 if "package" in resultArgs:
     print(resultArgs.package)
     installDir = ''
@@ -269,6 +278,9 @@ if "make" in resultArgs:
 #check environment Variables
 if resultArgs.environment:
     checkEnviromentVariables()
+
+if resultArgs.listPackages:
+    printPackageList()
 
 #create lms start script
 if resultArgs.createlmsscript:
