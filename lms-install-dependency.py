@@ -4,6 +4,7 @@ import sys, os
 import argparse
 import subprocess
 import multiprocessing
+import stat
 from lms_dm import install_utils
 
 def checkIfDirIsPackage(path):
@@ -11,6 +12,10 @@ def checkIfDirIsPackage(path):
     if not os.path.isfile(packageFile):
         return False;
     return True;
+
+def getPackageManagerDir():
+    return os.path.expanduser('~/.lms/lms_pm/')
+    
 
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir)
@@ -131,60 +136,154 @@ def downloadAndCreateCMake(package, installDir=''):
 
 def prepareGlobally(package):
     #install package globally
-    path = os.path.expanduser('~/.lms/lms_pm/')
-    downloadAndCreateCMake(package,path)
+    downloadAndCreateCMake(package,getPackageManagerDir())
     return path
 
 def prepareLocally(package):
     downloadAndCreateCMake(package)
     return ''
 
+def askForPermission(text):
+    return install_utils.query_yes_no(text)
+
+def checkEnvironmentVariable(key,value):
+   # isSet = False
+    #envString = '';
+    if key in os.environ:
+        envString = os.environ[key]
+        envString = envString+':'
+        pathsplit = envString.split(':')
+        if value in pathsplit:
+            return True
+    return False
+    #if not isSet:
+    #    print(envString)
+    #    if askForPermission('Missing env: <key>:<value> '+key +':'+value):
+    #        envString = envString+value
+    #        os.environ[key] = envString
+    #        print('env changed')
+    #    else:
+    #        print("env NOT changed")
+
+def checkEnviromentVariables():
+    packageManagerDir = os.path.expanduser('~/.lms/package_manager/')
+    #http://stackoverflow.com/questions/5971635/setting-reading-up-environment-variables-in-python
+    #check PATH
+    #export PATH="$PATH:~/.lms/package_manager/bin"
+    pathDir = os.path.join(packageManagerDir,'bin')
+    cpathDir = os.path.join(packageManagerDir,'include')
+    ldpathDir = os.path.join(packageManagerDir,'lib')
+
+    anyMissing=False
+    missing = checkEnvironmentVariable('PATH',pathDir)
+    if missing:
+        anyMissing = True
+        print("PATH NOT set correctly")
+    missing = checkEnvironmentVariable('CPATH',cpathDir)
+    if missing:
+        anyMissing = True
+        print("CPATH NOT set correctly")
+    missing = checkEnvironmentVariable('LD_LIBRARY_PATH',ldpathDir)
+    if missing:
+        anyMissing = True
+        print("LD_LIBRARY_PATH NOT set correctly")
+    
+    #Ask to add missing env variables
+    #TODO os check http://stackoverflow.com/questions/1854/python-what-os-am-i-running-on
+    #UNIX
+    profileFile = os.path.expanduser('~/.profile')
+    if os.path.isfile(profileFile):
+        lmsbash = os.path.join(getPackageManagerDir(),'bashrc')
+        alreadyAdded = False
+        with open(profileFile,'r') as file:
+            fileRead = file.read()
+            if lmsbash in fileRead:
+                print("already added, you may have to relog/restart")
+                alreadyAdded = True
+            else:
+                print("Missing environment variables")
+
+        if not alreadyAdded:
+            with open(profileFile,'a') as file:
+                #TODO ask the user
+                print('you can add it to ~/.profile')
+                file.write('\n #automatically added by the lms package manager\n')
+                file.write('. "$HOME/.lms/package_manager/.bashrc"')
+                print("call <exec bash> to reload changes")
+                
+    else:
+        print('please include bash file yourself (add . "$HOME/.lms/package_manager/.bashrc" to your bashrc or HOME/.profile)')
+
+    
+    #WIN TODO
+    print("TODO")
 
 
 #RUNNING CODE
 #configure argument parser
-parser = argparse.ArgumentParser(description='Process install command.')
+main_parser = argparse.ArgumentParser(description='Process package command.', add_help=True)
+main_parser.add_argument('-e','--environment', dest='environment', help='checks environment variables', action='store_true')
+main_parser.add_argument('-cs','--createlmsscript', dest='createlmsscript', help='creates start script for lms', action='store_true')
+subparser = main_parser.add_subparsers(help='sub-command help')
+
+parser = subparser.add_parser("install",description='Process install command.')
 parser.add_argument('package', help='packageName with extensions')
 parser.add_argument('-g','--global', dest='installGlobally', help='install package globally', action='store_true')
 parser.add_argument('-m','--make', dest='make', help='run cmake and make', action='store_true')
 
 #parse args
-resultArgs = parser.parse_args()
-installDir = ''
-if resultArgs.installGlobally:
-    installDir = prepareGlobally(resultArgs.package)
-    #TODO generate cmake for make install
-else:
-    installDir = prepareLocally(resultArgs.package)
+resultArgs = main_parser.parse_args()
+print(resultArgs)
+if "package" in resultArgs:
+    print(resultArgs.package)
+    installDir = ''
+    if resultArgs.installGlobally:
+        installDir = prepareGlobally(resultArgs.package)
+        #TODO generate cmake for make install
+    else:
+        installDir = prepareLocally(resultArgs.package)
 
 #compile it if required
-if resultArgs.make:
-    #create build dir
-    buildDir = os.path.join(installDir,'build')
-    os.makedirs(buildDir,exist_ok=True)
-    p = subprocess.Popen(['cmake', '..'], cwd=buildDir)
-    output, err = p.communicate()
-    if err is not None:
-        print(output)
-        print("cmake failed")   
-        sys.exit(1)
+if "make" in resultArgs:
+    if resultArgs.make:
+        #create build dir
+        buildDir = os.path.join(installDir,'build')
+        os.makedirs(buildDir,exist_ok=True)
+        p = subprocess.Popen(['cmake', '..'], cwd=buildDir)
+        output, err = p.communicate()
+        if err is not None:
+            print(output)
+            print("cmake failed")   
+            sys.exit(1)
 
-    if resultArgs.installGlobally:
-        p = subprocess.Popen(['make install -j{0}'.format(multiprocessing.cpu_count())], cwd=buildDir)      
-    else:
-        p = subprocess.Popen(['make -j{0}'.format(multiprocessing.cpu_count())], cwd=buildDir)
-    output, err = p.communicate()
-    if err is not None:
-        print(output)
-        print("make failed")
-        sys.exit(1)
+        if resultArgs.installGlobally:
+            p = subprocess.Popen(['make install -j{0}'.format(multiprocessing.cpu_count())], cwd=buildDir)      
+        else:
+            p = subprocess.Popen(['make -j{0}'.format(multiprocessing.cpu_count())], cwd=buildDir)
+        output, err = p.communicate()
+        if err is not None:
+            print(output)
+            print("make failed")
+            sys.exit(1)
 
+#check environment Variables
+if resultArgs.environment:
+    checkEnviromentVariables()
 
+#create lms start script
+if resultArgs.createlmsscript:
+    #create lms start script
+    #TODO use template
+    lmsStartScriptFile = "lms"
+    lmsStartScript = """#!/bin/bash
+    #lms start script
+    export LMS_CONFIG_PATH="$CONFIGS:"""+os.path.abspath("config")+""""
+    export LMS_MODULE_PATH="$MODULES:"""+os.path.abspath("dependencies/bin")+""":""" + os.path.expanduser(os.path.join(getPackageManagerDir(),"dependencies/bin"))+""""
+    lms $@
+    """
+    with open(lmsStartScriptFile,'w') as file:
+        file.write(lmsStartScript)
 
-
-    
-        
-
-
-
-
+    #make it executable
+    st = os.stat('lms')
+    os.chmod('lms', st.st_mode | stat.S_IEXEC)
