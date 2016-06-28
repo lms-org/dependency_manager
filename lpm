@@ -182,19 +182,10 @@ def checkEnvironmentVariable(key,value):
     #envString = '';
     if key in os.environ:
         envString = os.environ[key]
-        envString = envString+':'
         pathsplit = envString.split(':')
         if value in pathsplit:
             return True
     return False
-    #if not isSet:
-    #    print(envString)
-    #    if askForPermission('Missing env: <key>:<value> '+key +':'+value):
-    #        envString = envString+value
-    #        os.environ[key] = envString
-    #        print('env changed')
-    #    else:
-    #        print("env NOT changed")
 
 def checkEnviromentVariables():
     packageManagerDir = os.path.expanduser('~/.lms/package_manager/')
@@ -206,55 +197,66 @@ def checkEnviromentVariables():
     ldpathDir = os.path.join(packageManagerDir,'lib')
 
     anyMissing=False
-    missing = checkEnvironmentVariable('PATH',pathDir)
+    missing = not checkEnvironmentVariable('PATH',pathDir)
     if missing:
         anyMissing = True
         print("PATH NOT set correctly")
-    missing = checkEnvironmentVariable('CPATH',cpathDir)
+    missing = not checkEnvironmentVariable('CPATH',cpathDir)
     if missing:
         anyMissing = True
         print("CPATH NOT set correctly")
-    missing = checkEnvironmentVariable('LD_LIBRARY_PATH',ldpathDir)
+    missing = not checkEnvironmentVariable('LD_LIBRARY_PATH',ldpathDir)
     if missing:
         anyMissing = True
         print("LD_LIBRARY_PATH NOT set correctly")
+    if not anyMissing:
+        print("Everything seems to be set correctly")
+        return
     
     #Ask to add missing env variables
     #TODO os check http://stackoverflow.com/questions/1854/python-what-os-am-i-running-on
     #UNIX
     profileFile = os.path.expanduser('~/.profile')
     lmsbash = os.path.join(getPackageManagerDir(),'.bashrc')
-    if os.path.isfile(profileFile):
-        #check if file exists
-        if not os.path.isfile(lmsbash):
-            with open(lmsbash,'w') as file:
-                file.write("""export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:"""+os.path.join(getPackageManagerDir(),'lib')+""""
-export PATH="$PATH:"""+os.path.join(getPackageManagerDir(),'bin')+""""
-export CPATH="$CPATH:"""+os.path.join(getPackageManagerDir(),'include')+"\"")
-        
-        alreadyAdded = False
-        with open(profileFile,'r') as file:
-            fileRead = file.read()
-            if lmsbash in fileRead:
-                print("already added, you may have to relog/restart")
-                alreadyAdded = True
-            else:
-                print("Missing environment variables")
 
-        if not alreadyAdded:
-            with open(profileFile,'a') as file:
-                #TODO ask the user
-                print('you can add it to ~/.profile')
-                file.write('\n #automatically added by the lms package manager\n')
-                file.write('. "'+lmsbash+"\"")
-                print("call <exec bash> to reload changes (might not work, just reboot)")
+    #add the lmsbash file
+    if not os.path.isfile(lmsbash):
+        #write the lms bashfile
+        with open(lmsbash,'w') as file:
+            bashString ="""export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:{1}"
+export PATH="$PATH:{2}"
+export CPATH="$CPATH:{3}" """.format(os.path.join(getPackageManagerDir(),'lib'),os.path.join(getPackageManagerDir(),'bin'),os.path.join(getPackageManagerDir(),'include')) 
+            file.write(bashString)
+
+    #check if they were already added but not loaded
+    with open(profileFile,'r') as file:
+        fileRead = file.read()
+        if lmsbash in fileRead:
+            print("already added, you may have to relog/restart")
+            print("If it doesn't work please include bash file yourself (add . "+lmsbash+" to your bashrc or HOME/.profile or to any other file, you could also set the PATH,CPATH,LD_LIBRARY_PATH yourself")
+            return
+        else:
+            print("Missing environment variables")
+    #Ask the user if we should add them in .profile
+    autoEnvInstall = install_utils.query_yes_no("lpm could add the environment variables to your .profile", None)
+
+    if autoEnvInstall and os.path.isfile(profileFile):
+        #add it ot .profile
+        with open(profileFile,'a') as file:
+            print('you can add it to ~/.profile')
+            profileString ="""\n#automatically added by the lms package manager
+if [ -d "{0}" ] ; then
+'. "{0}"
+fi
+""".format(lmsbash)
+            file.write(profileString)
+            print("call <exec bash> to reload changes (might not work, just relog/reboot)")
                 
     else:
-        print('please include bash file yourself (add . "'+lmsbash+'" to your bashrc or HOME/.profile)')
+        print('please include bash file yourself (add . "'+lmsbash+'" to your bashrc or HOME/.profile or to any other file, you could also set the PATH,CPATH,LD_LIBRARY_PATH yourself)')
 
     
     #WIN TODO
-    print("TODO")
 
 def printPackageList():
     data = install_utils.getPackageList()
