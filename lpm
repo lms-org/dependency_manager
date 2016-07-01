@@ -123,8 +123,12 @@ def downloadAndCreateCMake(package, installDir=''):
     print("CMAKE FILE: "+cmakeFile)
     #os.makedirs('lms_cmake',exist_ok=True) 
     with open(cmakeFile,'w') as file:
-        file.write('cmake_minimum_required(VERSION 2.8) \n')
-        file.write('project(TODO) \n') # TODO get the current dirname
+        file.write("""cmake_minimum_required(VERSION 2.8)
+project({0})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY {1})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY {1})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY {2})
+""".format("NAME_OF_THE_PROJECT_TODO",os.path.abspath("lib"),os.path.abspath("bin"))) # TODO get the current dirname
         
         file.write('include(customCMake.txt) \n')
         packageHierarchyListCopy = packageHierarchyList.copy()
@@ -246,7 +250,7 @@ export CPATH="$CPATH:{3}" """.format(os.path.join(getPackageManagerDir(),'lib'),
             print('you can add it to ~/.profile')
             profileString ="""\n#automatically added by the lms package manager
 if [ -d "{0}" ] ; then
-'. "{0}"
+. "{0}"
 fi
 """.format(lmsbash)
             file.write(profileString)
