@@ -18,25 +18,6 @@ def parseJson(packageFilePath):
     with open(packageFilePath) as file:
         return json.load(file)
 
-def getDefaultPackageList():
-    homeDir = os.path.expanduser("~")
-    return  homeDir+'/.lms/packagelist.json'
-
-def getPackageLists():
-    result = set()
-#   TODO hier später alle möglichen ausführen
-    result.add(getDefaultPackageList())
-    return result
-
-def getPackageList():
-    data = dict()
-    for packageListPath in getPackageLists():
-        if not os.path.isfile(packageListPath):
-            print('packageFile does not exist: '+packageListPath)
-            continue
-        data[packageListPath] = parseJson(packageListPath)
-    return data
-
 def getPackageUrlFromName(packageName):
     for packageListPath in getPackageLists():
         if not os.path.isfile(packageListPath):

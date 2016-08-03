@@ -1,11 +1,36 @@
 #!/usr/bin/env python3
 import sys, os
 
+from lms_dm import install_utils
 
-def isPackageInstalledGlobally(package):
-    if os.path.isdir(os.path.join(getPackageManagerGlobalDependencyDir(),package.name)):
-        return True
-    return False
+
+def getDefaultPackageList():
+    homeDir = os.path.expanduser("~")
+    return  homeDir+'/.lms/packagelist.json'
+
+def getPackageLists():
+    result = set()
+#   TODO hier später alle möglichen ausführen
+    result.add(getDefaultPackageList())
+    return result
+
+def getPackageList():
+    data = dict()
+    for packageListPath in getPackageLists():
+        if not os.path.isfile(packageListPath):
+            print('packageFile does not exist: '+packageListPath)
+            continue
+        data[packageListPath] = install_utils.parseJson(packageListPath)
+    return data
+
+
+#def isPackageInstalledGlobally(package):
+#    if os.path.isdir(os.path.join(getPackageManagerGlobalDependencyDir(),package.name)):
+#        return True
+#    return False
+
+def getSrcDir():
+    return os.path.join(getDir(),"dependencies")
 
 def getDir():
     return os.path.expanduser('~/.lms/lms_pm/')
@@ -25,7 +50,7 @@ def getPackageUrlFromName(packageName):
         if not os.path.isfile(packageListPath):
             print('packageFile does not exist: '+packageListPath)
             continue
-        packagesData = parseJson(packageListPath)
+        packagesData = install_utils.parseJson(packageListPath)
         if packageName in packagesData:
             return packagesData[packageName]['path']
 

@@ -7,13 +7,7 @@ import multiprocessing
 import stat
 from lms_dm import install_utils
 from lms_dm import package_manager
-
-def checkIfDirIsPackage(path):
-    packageFile = path+'/lms_package.json'
-    if not os.path.isfile(packageFile):
-        return False;
-    return True;
-
+from lms_dm import package
 
 def getPurePackageName(packageFull):
     return packageFull.split(":")[0]
@@ -22,7 +16,7 @@ def getPackageManagerDir():
     return package_manager.getDir()
     
 def getPackageManagerGlobalDependencyDir():
-    return os.path.join(getPackageManagerDir(),"dependencies")
+    return os.path.join(package_manager.getDir(),"dependencies")
     
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir)
@@ -97,7 +91,7 @@ def getStringForPackageIncludes(packageName, dependencyDir, globalHack = False):
 def downloadAndCreateCMake(package, installDir=''):
     """install package in <installDir>dependencies
     """
-    isGlobal = installDir == getPackageManagerDir()
+    isGlobal = installDir == package_manager.getDir()
     dependencyDir = os.path.join(installDir,'dependencies')
     collectPackageWithDependencies(package,dependencyDir)
     print("installing Done")
@@ -105,7 +99,7 @@ def downloadAndCreateCMake(package, installDir=''):
     #get all package-dependencies
     packageHierarchyList = dict()
     for subdir in get_immediate_subdirectories(dependencyDir):
-        if not checkIfDirIsPackage(dependencyDir+'/'+subdir):
+        if not package.isDirPackage(dependencyDir+'/'+subdir):
             print("invalid dir given: "+subdir)
             continue;
         #ignore package parameters as we can't compile two times the same package with different versions (targetName fails)  
@@ -197,19 +191,19 @@ parser.add_argument('-m','--make', dest='make', help='run cmake and make', actio
 resultArgs = main_parser.parse_args()
 #print(resultArgs)
 if "package" in resultArgs:
-    print(resultArgs.package)
-    installDir = ''
+    workingdir = ""
     if resultArgs.installGlobally:
-        installDir = prepareGlobally(resultArgs.package)
-        #TODO generate cmake for make install
+        workingdir = package_manager.getDir()
     else:
-        installDir = prepareLocally(resultArgs.package)
+        workingdir = os.path.abspath('')
+    p = package.Package(resultArgs.package,workingdir)
+    p.installWithDependencies(False)
 
 #compile it if required
 if "make" in resultArgs:
     if resultArgs.make:
         #create build dir
-        buildDir = os.path.join(installDir,'build')
+        buildDir = os.path.join(workingdir,'build')
         os.makedirs(buildDir,exist_ok=True)
         p = subprocess.Popen(['cmake', '..'], cwd=buildDir)
         output, err = p.communicate()
