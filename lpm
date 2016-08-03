@@ -19,7 +19,7 @@ def getPurePackageName(packageFull):
     return packageFull.split(":")[0]
 
 def getPackageManagerDir():
-    return os.path.expanduser('~/.lms/lms_pm/')
+    return package_manager.getDir()
     
 def getPackageManagerGlobalDependencyDir():
     return os.path.join(getPackageManagerDir(),"dependencies")

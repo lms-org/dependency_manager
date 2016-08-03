@@ -71,8 +71,6 @@ class Package:
             print('Package not found: '+package)
             sys.exit(1)
 
-        #TODO handle binaries
-
         ###get current source
         #create path
         os.makedirs(workingDir, exist_ok=True)
@@ -90,9 +88,7 @@ class Package:
                     print("pull failed")
                     sys.exit(1)
                 print("pulled package")
-                #TODO error handling
             else : 
-                #ret = subprocess.call(["git","clone",packageUrl, dir])
                 p = subprocess.Popen(['git', 'clone', packageUrl], cwd=dependencyDir)
                 output, err = p.communicate()
                 if err is not None:
@@ -128,14 +124,14 @@ class Package:
 
         
 
-    def isBinary(self):
+    def hasBinary(self):
         #TODO
         return False
 
 
-    def isSource(self):
+    def hasSource(self):
         #TODO
-        return False
+        return True
 
 
 ###############################################################

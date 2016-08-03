@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys, os
 
 
 def isPackageInstalledGlobally(package):
@@ -71,7 +72,7 @@ def checkEnviromentVariables():
     #TODO os check http://stackoverflow.com/questions/1854/python-what-os-am-i-running-on
     #UNIX
     profileFile = os.path.expanduser('~/.profile')
-    lmsbash = os.path.join(getPackageManagerDir(),'.bashrc')
+    lmsbash = os.path.join(getDir(),'.bashrc')
 
     #add the lmsbash file
     if not os.path.isfile(lmsbash):
@@ -79,7 +80,7 @@ def checkEnviromentVariables():
         with open(lmsbash,'w') as file:
             bashString ="""export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:{1}"
 export PATH="$PATH:{2}"
-export CPATH="$CPATH:{3}" """.format(os.path.join(getPackageManagerDir(),'lib'),os.path.join(getPackageManagerDir(),'bin'),os.path.join(getPackageManagerDir(),'include')) 
+export CPATH="$CPATH:{3}" """.format(getLibDir(),getBinDir(),getIncludeDir()) 
             file.write(bashString)
 
     #check if they were already added but not loaded
