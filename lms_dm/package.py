@@ -239,7 +239,6 @@ class Package:
     def getStringForPackageIncludes(self):
         #each package has one or more binary/target, we have to catch them all!
         targets = self.getTargets()
-        print("found targets: {0}".format(targets))
         dependencies = self.getPackageDependencies()
         #get includes for the dependencies
         includeList = list()
@@ -252,6 +251,14 @@ class Package:
         for target in targets:
             res += 'target_include_directories({0} PUBLIC {1})'.format(target,' '.join(includeList)) + '\n'
         return res
+
+    def getStringForIncludeCopies(self,dest):
+        includes = self.getPackageIncludes()
+        if len(includes) == 0:
+            return ""
+        return """file(GLOB HEADERS {0})
+file(COPY ${{HEADERS}} DESTINATION {1})
+""".format('/* '.join(includes)+'/*',dest) + '\n'
 
 
     def getPackageHierachyDict(self,d=None):
@@ -319,6 +326,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY {2})
             packageHierarchyList = self.getPackageHierachyDict()
             for package in list(packageHierarchyList):
                 s = package.getStringForPackageIncludes()
+                if len(s) != 0:
+                    file.write(s)
+            #copy includes to lib
+            for package in list(packageHierarchyList):
+                s = package.getStringForIncludeCopies(includePath)
                 if len(s) != 0:
                     file.write(s)
 

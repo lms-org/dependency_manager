@@ -20,7 +20,7 @@ subparser = main_parser.add_subparsers(help='sub-command help')
 
 parser = subparser.add_parser("install",description='Process install command.')
 parser.add_argument('package', help='packageName with extensions')
-parser.add_argument('-g','--global', dest='installGlobally', help='install package globally (will be compiled)', action='store_true')
+parser.add_argument('-g','--global', dest='installGlobally', help='install package globally (make will be called)', action='store_true')
 parser.add_argument('-m','--make', dest='make', help='run cmake and make', action='store_true')
 
 #parse args
@@ -36,9 +36,8 @@ if "package" in resultArgs:
     #create CMake
     p.generateCMake()
 
-#compile it if required
-if "make" in resultArgs:
-    if resultArgs.make:
+    #compile it if required
+    if resultArgs.make or resultArgs.installGlobally:
         #create build dir
         buildDir = os.path.join(workingdir,'build')
         os.makedirs(buildDir,exist_ok=True)
