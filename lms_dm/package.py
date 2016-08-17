@@ -50,6 +50,17 @@ class Package:
         self.name = self.getPurePackageName(nameWithExtensions)
         self.workingDir = workingDir
 
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return (self.name == other.name)
+
+    def __ne__(self, other):
+        # Not strictly necessary, but to avoid having both x==y and x!=y
+        # True at the same time
+        return not(self == other)
+
     def getDependencyDir(self):
         return os.path.join(self.workingDir,"dependencies")
 
@@ -61,21 +72,20 @@ class Package:
             return True
         return False
 
-    def installWithDependencies(self, ignoreGlobal=False):
+    def downloadWithDependencies(self, ignoreGlobal=False):
         #install or update the current package
-        if not self.installOrUpdate(ignoreGlobal):
+        if not self.download(ignoreGlobal):
             return
 
         #get all dependencies
         dependencies = self.getPackageDependencies()
-        print("DEPENDENCIES: {0}".format(dependencies))
         if dependencies is None:
             sys.exit(1)
         for dependency in dependencies:
-            dependency.installWithDependencies(ignoreGlobal)
+            dependency.downloadWithDependencies(ignoreGlobal)
 
 
-    def installOrUpdate(self, ignoreGlobal=False):
+    def download(self, ignoreGlobal=False):
         #check if it is installed globally
         if not ignoreGlobal and self.installedGlobally():
             print(self.name + " already installed globally, you might have to update it manually")
@@ -199,17 +209,17 @@ class Package:
         return res
 
     #returns a list with all binaries that have to be linked
-    def getPackageTargets(self):
+    def getTargets(self):
         packageFilePath = self.getPackageFilePath()
         json = install_utils.parseJson(packageFilePath)
         if 'targets' in json:
             return json['targets']
         targets = list()
-        targets.append(packageName)
+        targets.append(self.name)
         return targets
 
 
-    def getPackageIncludes(absPath=True):
+    def getPackageIncludes(self,absPath=True):
         packageFilePath = self.getPackageFilePath()
         json = install_utils.parseJson(packageFilePath)
         if 'includes' in json:
@@ -226,72 +236,94 @@ class Package:
                 result.append(include)
         return result
 
-    def generateCMake(self, dir):
+    def getStringForPackageIncludes(self):
+        #each package has one or more binary/target, we have to catch them all!
+        targets = self.getTargets()
+        print("found targets: {0}".format(targets))
+        dependencies = self.getPackageDependencies()
+        #get includes for the dependencies
+        includeList = list()
+        for dependency in dependencies:
+            for tmp in dependency.getPackageIncludes():
+                includeList.append(tmp)
+        if len(includeList) == 0:
+            return ""
+        res = ""
+        for target in targets:
+            res += 'target_include_directories({0} PUBLIC {1})'.format(target,' '.join(includeList)) + '\n'
+        return res
 
-        libPath = os.path.abspath(os.path.join(dir,"lib"))
-        binPath = os.path.abspath(os.path.join(dir,"bin"))
-        includePath = os.path.abspath(os.path.join(dir,"includePath"))
+
+    def getPackageHierachyDict(self,d=None):
+        if d is None:
+            d = dict()
+        d[self] = self.getPackageDependencies()
+        for dep in d[self]:
+            dep.getPackageHierachyDict(d)
+        return d
+
+    def getCMakeCallCompileDependencyMessage(self):
+        return 'add_subdirectory({0})'.format(os.path.abspath(self.getDir()))
+    
+
+    def generateCMake(self):
+        libPath = os.path.abspath(os.path.join(self.workingDir,"lib"))
+        binPath = os.path.abspath(os.path.join(self.workingDir,"bin"))
+        includePath = os.path.abspath(os.path.join(self.workingDir,"includePath"))
+
         #get all package-dependencies
-        packageHierarchyList = dict()
-        for subdir in get_immediate_subdirectories(dependencyDir):
-            if not package.isDirPackage(dependencyDir+'/'+subdir):
-                print("invalid dir given: "+subdir)
-                continue;
-            #ignore package parameters as we can't compile two times the same package with different versions (targetName fails)  
-            result=install_utils.getPackageDependencies(dependencyDir+'/'+subdir, True)  
-            #remove globally installed packages
-            for tmp in result:
-                if isPackageInstalledGlobally(tmp):
-                    result.remove(tmp)
-            packageHierarchyList[subdir] = result
-
-        print(packageHierarchyList)
-
-
+        packageHierarchyList = self.getPackageHierachyDict()
+        for p in packageHierarchyList:
+            res = list()
+            for dp in packageHierarchyList[p]:
+                if not dp.installedGlobally():
+                    res.append(dp)
+            packageHierarchyList[p] = res
+        
         #generate hierarchy CMake
-        cmakeFile = os.path.join(installDir,'CMakeLists.txt')
+        cmakeFile = os.path.join(self.workingDir,'CMakeLists.txt')
         print("CMAKE FILE: "+cmakeFile)
         #os.makedirs('lms_cmake',exist_ok=True) 
         with open(cmakeFile,'w') as file:
             file.write("""cmake_minimum_required(VERSION 2.8)
-    project({0})
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY {1})
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY {1})
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY {2})
-    """.format("NAME_OF_THE_PROJECT_TODO",os.path.abspath("lib"),os.path.abspath("bin"))) # TODO get the current dirname
-            
+project({0})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY {1})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY {1})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY {2})
+""".format("NAME_OF_THE_PROJECT_TODO",libPath,binPath))
+
             file.write('include(customCMake.txt) \n')
-            packageHierarchyListCopy = packageHierarchyList.copy()
-
             file.write('\n \n#package compile hierachy \n')
-            lastSize = len(packageHierarchyListCopy)
-            while len(packageHierarchyListCopy) > 0:
-                for packageDependencies in list(packageHierarchyListCopy):
-                    installedGlobally = isPackageInstalledGlobally(packageDependencies)
-                    if isGlobal:
-                        installedGlobally = False #TODO Hack to enable installation of global packages....
-                    print(packageDependencies+" installedGlobally: {0}".format(installedGlobally))
-                    if len(packageHierarchyListCopy[packageDependencies]) == 0 or installedGlobally:
-                        if not installedGlobally:
-                            file.write(getCMakeCallCompileDependencyMessage(dependencyDir+'/'+packageDependencies)+'\n')
-                        #remove it from all other lists
-                        packageHierarchyListCopy.pop(packageDependencies)
-                        for tmp in packageHierarchyListCopy:
-                            if packageDependencies in packageHierarchyListCopy[tmp]:
-                                packageHierarchyListCopy[tmp].remove(packageDependencies)
-                if lastSize == len(packageHierarchyListCopy):
+            lastSize = 0
+            while len(packageHierarchyList) > 0:
+                if lastSize == len(packageHierarchyList):
                     #TODO error handling if there is a closed loop :D
-                    print("Your dependencies have a closed loop! {0}".format(packageHierarchyListCopy))
+                    print("Your dependencies have a closed loop! {0}".format(packageHierarchyList))
                     sys.exit(1)
-                lastSize = len(packageHierarchyListCopy)
-
+                lastSize = len(packageHierarchyList)
+                toRemove = list()
+                for p in packageHierarchyList:
+                    if len(packageHierarchyList[p]) == 0:
+                        #write the dependency
+                        file.write(p.getCMakeCallCompileDependencyMessage()+"\n")
+                        #remove it from others
+                        toRemove.append(p)
+                        for c  in packageHierarchyList:
+                            if p in packageHierarchyList[c]:
+                                packageHierarchyList[c].remove(p)
+                for p in toRemove:
+                    packageHierarchyList.pop(p)
+            
+            #set include paths
             file.write('\n\n#target include paths \n')
+            packageHierarchyList = self.getPackageHierachyDict()
             for package in list(packageHierarchyList):
-                s = getStringForPackageIncludes(package,dependencyDir,globalHack=isGlobal) #TODO packageName
+                s = package.getStringForPackageIncludes()
                 if len(s) != 0:
                     file.write(s)
-        #generatre custom CMake file
-        customCmake = os.path.join(installDir,'customCMake.txt')
+
+        #generatre custom CMake file if it's missing
+        customCmake = os.path.join(self.workingDir,'customCMake.txt')
         if not os.path.isfile(customCmake): 
             with open(customCmake,'w') as file:
                 file.write("#Add your cmake stuff here")
