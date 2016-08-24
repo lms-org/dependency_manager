@@ -1,3 +1,3 @@
-#Dependency-Manager for C/C++ projects
+#lms dependency manager
 
-In data are default dependency-lists
+Dependency-Manager for C/C++ projects which was never used but works as we will go for [conan](conan.io)
